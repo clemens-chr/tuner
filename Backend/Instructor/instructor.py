@@ -6,8 +6,13 @@ whether to direct users to the marketplace or the data recording application.
 import logging
 from typing import Dict, List, Optional, Union, Any
 
-from ..task_classifier import TaskClassifier
-from ..multimodal.processor import MultimodalProcessor
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from task_classifier import TaskClassifier
+from multimodal.processor import MultimodalProcessor
 from ..database.neo4j_client import Neo4jClient
 from ..api.groq_client import GroqClient
 
