@@ -13,10 +13,11 @@ import {
   Send,
   Download,
   Plus,
+  ShoppingBag,
 } from "lucide-react";
 import marketplaceItems from "../src/assets/marketplacedata";
 
-const TunerChatbot = () => {
+const TunerChatbot = ({ onMarketplaceClick }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -124,67 +125,69 @@ const TunerChatbot = () => {
     try {
       // Hide marketplace options
       setMarketplaceOptions(null);
-  
+
       // Get the current input text from the text area
       const prompt = inputText.trim();
-  
+
       // Add user message to chat to show what's being sent
       const userMessage = {
         id: Date.now(),
         type: "user",
         text: prompt || "Sending request to Groq...",
       };
-  
+
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
-  
+
       console.log("prompt", prompt);
 
       const finalPrompt = prompt || "Autonomous Floor Cleaner";
-  
+
       // Make the API call to Groq with the current input text
       const response = await fetch(
-        `http://192.168.38.129:8000/groq?prompt=${encodeURIComponent(finalPrompt)}`,
+        `http://192.168.38.129:8000/groq?prompt=${encodeURIComponent(
+          finalPrompt
+        )}`,
         {
           method: "GET",
         }
       );
-  
+
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
       }
-  
+
       // Parse the response
       const groqData = await response.json();
       console.log("Groq response:", groqData);
-  
+
       // Add bot response with Groq's reply
       const botResponse = {
         id: Date.now() + 1,
         type: "bot",
         text: groqData || "Received a response from Groq.",
       };
-  
+
       setMessages((prev) => [...prev, botResponse]);
-  
+
       // Clear the input text
       setInputText("");
     } catch (error) {
       console.error("Error in handleRecordNew:", error);
-  
+
       // Add error message to chat
       const errorResponse = {
         id: Date.now() + 1,
         type: "bot",
         text: "Sorry, there was an error communicating with Groq. Please try again.",
       };
-  
+
       setMessages((prev) => [...prev, errorResponse]);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const startVideoRecording = async () => {
     try {
       setShowVideoPopup(true); // Show the popup
@@ -446,7 +449,9 @@ const TunerChatbot = () => {
       console.log("newUserMessage", newUserMessage);
 
       const response = await fetch(
-        `http://192.168.38.129:8000/groq?prompt=${encodeURIComponent(newUserMessage.text)}`,
+        `http://192.168.38.129:8000/groq?prompt=${encodeURIComponent(
+          newUserMessage.text
+        )}`,
         {
           method: "GET",
         }
@@ -1038,6 +1043,15 @@ const TunerChatbot = () => {
           >
             <Send size={18} />
           </button>
+
+          <button
+            onClick={onMarketplaceClick}
+            className={`rounded-full p-3 flex transition-all shadow-md ${colors.secondary} text-white transform hover:scale-105 ${colors.buttonHover}`}
+            title="Go to Marketplace"
+          >
+            <ShoppingBag size={18} />{" "}
+            <span style={{ marginLeft: "10px" }}>Go To Marketplace</span>
+          </button>
         </div>
 
         {/* Quick suggestion chips */}
@@ -1178,72 +1192,72 @@ const TunerChatbot = () => {
         </div>
       )} */}
 
-{showVideoPopup && (
-  <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-    <div
-      className={`${colors.secondary} rounded-xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden`}
-    >
-      <div
-        className={`${colors.primary} p-4 flex justify-between items-center`}
-      >
-        <h3 className="text-white font-medium">Record Video</h3>
-        <button
-          onClick={() => {
-            stopVideoRecording();
-            setShowVideoPopup(false);
-          }}
-          className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
-        >
-          <X size={20} />
-        </button>
-      </div>
+      {showVideoPopup && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div
+            className={`${colors.secondary} rounded-xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden`}
+          >
+            <div
+              className={`${colors.primary} p-4 flex justify-between items-center`}
+            >
+              <h3 className="text-white font-medium">Record Video</h3>
+              <button
+                onClick={() => {
+                  stopVideoRecording();
+                  setShowVideoPopup(false);
+                }}
+                className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-      <div className="p-6 relative">
-        {/* Video preview container */}
-        <div className="bg-black rounded-lg overflow-hidden aspect-video relative">
-          <video
-            ref={videoRef}
-            className="w-full h-full object-cover"
-            autoPlay
-            muted
-          />
+            <div className="p-6 relative">
+              {/* Video preview container */}
+              <div className="bg-black rounded-lg overflow-hidden aspect-video relative">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                />
 
-          {/* Overlay instructions */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-black/50 px-5 py-3 rounded-lg text-white text-center max-w-sm">
-              <p className="font-medium text-lg">
-                Place your hand at the center of the frame
+                {/* Overlay instructions */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="bg-black/50 px-5 py-3 rounded-lg text-white text-center max-w-sm">
+                    <p className="font-medium text-lg">
+                      Place your hand at the center of the frame
+                    </p>
+                  </div>
+                </div>
+
+                {/* Optional: Target indicator */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-40 h-40 border-2 border-dashed border-white/60 rounded-full"></div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={stopVideoRecording}
+                  className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
+                >
+                  <span>Stop Recording</span>
+                </button>
+              </div>
+
+              <p
+                className={`text-sm mt-4 ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-600"
+                }`}
+              >
+                Recording will be sent after you stop. Make sure your hand is
+                clearly visible.
               </p>
             </div>
           </div>
-
-          {/* Optional: Target indicator */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-40 h-40 border-2 border-dashed border-white/60 rounded-full"></div>
-          </div>
         </div>
-
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={stopVideoRecording}
-            className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
-          >
-            <span>Stop Recording</span>
-          </button>
-        </div>
-
-        <p
-          className={`text-sm mt-4 ${
-            theme === "dark" ? "text-gray-300" : "text-gray-600"
-          }`}
-        >
-          Recording will be sent after you stop. Make sure your hand is
-          clearly visible.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 };
