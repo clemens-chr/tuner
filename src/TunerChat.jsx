@@ -1,18 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   Camera,
-  Mic,
-  Send,
-  Paperclip,
-  X,
   Video,
-  Music,
+  Volume2,
+  Bot,
   Settings,
   ChevronDown,
-  Bot,
-  Volume2,
+  Paperclip,
+  X,
+  Mic,
   Sliders,
+  Send,
+  Download,
+  Plus
 } from "lucide-react";
+import marketplaceItems from "../src/assets/marketplacedata";
 
 const TunerChatbot = () => {
   const [messages, setMessages] = useState([
@@ -58,7 +60,6 @@ const TunerChatbot = () => {
     scrollToBottom();
   }, [messages]);
 
-
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -82,6 +83,57 @@ const TunerChatbot = () => {
 
   const handleFileButtonClick = () => {
     fileInputRef.current.click();
+  };
+
+  const [marketplaceOptions, setMarketplaceOptions] = useState(null);
+
+  // 3. Add a function to check if instruction exists in marketplace
+  const checkMarketplace = (instruction) => {
+    // This assumes marketplaceItems is an array of objects with at least an 'instruction' field
+    const matches = marketplaceItems.filter((item) =>
+      item.title.toLowerCase().includes(instruction.toLowerCase())
+    );
+
+    return matches.length > 0 ? matches : null;
+  };
+
+  // 4. Add functions to handle marketplace actions
+  const handleGetFromMarketplace = (instruction) => {
+    // Set a loading state
+    setIsLoading(true);
+
+    // Hide the marketplace options
+    setMarketplaceOptions(null);
+
+    // Simulate fetching from marketplace with a slight delay
+    setTimeout(() => {
+      // Add a bot message about getting instruction from marketplace
+      const botResponse = {
+        id: Date.now(),
+        type: "bot",
+        text: `I've obtained the "${instruction}" instruction from our marketplace. You can now use it with your robot.`,
+      };
+
+      setMessages((prev) => [...prev, botResponse]);
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  const handleRecordNew = () => {
+    // Hide marketplace options
+    setMarketplaceOptions(null);
+
+    // Show media buttons for recording
+    setShowMediaButtons(true);
+
+    // Add a bot message guiding user to record
+    const botResponse = {
+      id: Date.now(),
+      type: "bot",
+      text: "You can record new instruction data using audio, video, or image. Please select an option from the media menu.",
+    };
+
+    setMessages((prev) => [...prev, botResponse]);
   };
 
   const startVideoRecording = async () => {
@@ -224,7 +276,30 @@ const TunerChatbot = () => {
 
   const handleSendMessage = async () => {
     if ((!inputText.trim() && !mediaPreview) || isLoading) return;
-  
+
+    if (inputText.trim() && !mediaPreview) {
+      const marketplaceMatches = checkMarketplace(inputText.trim());
+
+      if (marketplaceMatches) {
+        // If we found matches, show the marketplace options instead of proceeding
+        setMarketplaceOptions({
+          query: inputText.trim(),
+          matches: marketplaceMatches,
+        });
+
+        // Add user message to chat
+        const newUserMessage = {
+          id: Date.now(),
+          type: "user",
+          text: inputText,
+        };
+
+        setMessages([...messages, newUserMessage]);
+        setInputText("");
+        return;
+      }
+    }
+
     // Add user message to chat
     const newUserMessage = {
       id: Date.now(),
@@ -233,76 +308,84 @@ const TunerChatbot = () => {
       media: mediaPreview,
       mediaType: mediaType,
     };
-  
+
     setMessages([...messages, newUserMessage]);
     setIsLoading(true);
     setInputText("");
     setMediaPreview(null);
     setMediaType(null);
     setShowMediaButtons(false);
-  
+
     try {
       // Prepare form data for API call
       const formData = new FormData();
-      
+
       // Add text data if available
       if (newUserMessage.text) {
-        formData.append('text', newUserMessage.text);
+        formData.append("text", newUserMessage.text);
       }
-      
+
       // Add media data if available
       if (newUserMessage.media) {
         // For image and recorded media that's in base64 format
-        if (newUserMessage.media.startsWith('data:')) {
+        if (newUserMessage.media.startsWith("data:")) {
           // Convert base64 to blob
           const fetchResponse = await fetch(newUserMessage.media);
           const blob = await fetchResponse.blob();
-          formData.append('media', blob, `${newUserMessage.mediaType}.${newUserMessage.mediaType === 'image' ? 'jpg' : 'webm'}`);
-        } 
+          formData.append(
+            "media",
+            blob,
+            `${newUserMessage.mediaType}.${
+              newUserMessage.mediaType === "image" ? "jpg" : "webm"
+            }`
+          );
+        }
         // For uploaded files (which are already blobs)
         else if (newUserMessage.media instanceof Blob) {
-          formData.append('media', newUserMessage.media);
+          formData.append("media", newUserMessage.media);
         }
-        
+
         // Add media type information
-        formData.append('mediaType', newUserMessage.mediaType);
+        formData.append("mediaType", newUserMessage.mediaType);
       }
-      
+
       // Make API call to backend
-      const response = await fetch('YOUR_BACKEND_API_URL', {
-        method: 'POST',
+      const response = await fetch("YOUR_BACKEND_API_URL", {
+        method: "POST",
         body: formData,
         // No Content-Type header needed as it's automatically set with boundary for FormData
       });
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
       }
-      
+
       // Parse the response
       const botResponseData = await response.json();
-      
+
       // Add bot response
       const botResponse = {
         id: Date.now() + 1,
         type: "bot",
-        text: botResponseData.message || "I've received your input and processed it.",
+        text:
+          botResponseData.message ||
+          "I've received your input and processed it.",
         // If the server returns any media, add it here
         media: botResponseData.media || null,
         mediaType: botResponseData.mediaType || null,
       };
-  
+
       setMessages((prev) => [...prev, botResponse]);
     } catch (error) {
       console.error("Error sending message:", error);
-      
+
       // Add error response to chat
       const errorResponse = {
         id: Date.now() + 1,
         type: "bot",
         text: "Sorry, I encountered an error processing your request. Please try again.",
       };
-      
+
       setMessages((prev) => [...prev, errorResponse]);
     } finally {
       setIsLoading(false);
@@ -593,6 +676,83 @@ const TunerChatbot = () => {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {marketplaceOptions && (
+        <div
+          className={`p-4 border-t ${
+            theme === "dark"
+              ? "bg-gray-800 border-gray-700"
+              : "bg-white border-gray-200"
+          }`}
+        >
+          <div className="max-w-4xl mx-auto">
+            <div
+              className={`p-4 rounded-lg ${
+                theme === "dark" ? "bg-gray-700" : "bg-gray-100"
+              }`}
+            >
+              <h3
+                className={`font-medium mb-2 ${
+                  theme === "dark" ? "text-white" : "text-gray-800"
+                }`}
+              >
+                We found similar instructions in the marketplace:
+              </h3>
+
+              <div className="mb-4">
+                {marketplaceOptions.matches.map((match, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 mb-2 rounded ${
+                      theme === "dark"
+                        ? "bg-gray-600"
+                        : "bg-white border border-gray-200"
+                    }`}
+                  >
+                    <p
+                      className={
+                        theme === "dark" ? "text-gray-200" : "text-gray-700"
+                      }
+                    >
+                      {match.title}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() =>
+                    handleGetFromMarketplace(marketplaceOptions.query)
+                  }
+                  className={`flex items-center px-4 py-2 rounded-lg ${
+                    theme === "dark"
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : "bg-blue-500 hover:bg-blue-600"
+                  } text-white transition-colors`}
+                >
+                  <Download size={16} className="mr-2" />
+                  Get from marketplace
+                </button>
+
+                <button
+                  onClick={handleRecordNew}
+                  className={`flex items-center px-4 py-2 rounded-lg ${
+                    theme === "dark"
+                      ? "bg-gray-600 hover:bg-gray-500"
+                      : "bg-gray-200 hover:bg-gray-300"
+                  } ${
+                    theme === "dark" ? "text-white" : "text-gray-800"
+                  } transition-colors`}
+                >
+                  <Plus size={16} className="mr-2" />
+                  Record new data
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
