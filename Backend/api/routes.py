@@ -8,8 +8,8 @@ from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Depends, B
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from ..instructor.instructor import Instructor
-from ..config.settings import get_settings
+from Instructor.instructor import Instructor
+from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 

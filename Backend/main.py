@@ -8,10 +8,10 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from backend.api.routes import router as api_router
-from backend.config.settings import get_settings
-from backend.utils.helpers import setup_logging
-from backend.database.neo4j_client import Neo4jClient
+from api.routes import router as api_router
+from config.settings import get_settings
+from helpers import setup_logging
+from database.neo4j_client import Neo4jClient
 
 # Setup logging
 setup_logging()
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
         username=settings.neo4j_username,
         password=settings.neo4j_password
     )
-    
+
     try:
         await neo4j_client.setup_schema()
         logger.info("Database schema setup complete")

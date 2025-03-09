@@ -7,17 +7,23 @@ from pydantic import BaseSettings, Field, validator
 import os
 import json
 
+from dotenv import load_dotenv
+from pathlib import Path
+
+
+dotenv_path = Path("/Users/vijay/Desktop/DAT490_Project/tuner/.env")
+load_dotenv(dotenv_path=dotenv_path)
 class Settings(BaseSettings):
     """
     Application settings loaded from environment variables.
     """
     # Neo4j settings
-    neo4j_uri: str = Field(..., env="NEO4J_URI")
-    neo4j_username: str = Field(..., env="neo4j")
-    neo4j_password: str = Field(..., env="ZeSTs4Nit_8fS3bSgm49BRUWTXY1L9QMaDKKCPRhI9g")
+    neo4j_uri: str = os.getenv("neo4j")
+    neo4j_username: str = os.getenv("DATABASE_USER")
+    neo4j_password: str = os.getenv("DATABASE_PASSWORD")
     
     # Groq API settings
-    groq_api_key: str = Field(..., env="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")
+    groq_api_key: str = os.getenv("GROQ_API_KEY")
     
     # Application settings
     app_name: str = Field("Multimodal Instructor", env="APP_NAME")

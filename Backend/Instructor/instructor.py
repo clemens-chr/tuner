@@ -11,10 +11,12 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from task_classifier import TaskClassifier
-from multimodal.processor import MultimodalProcessor
-from ..database.neo4j_client import Neo4jClient
-from ..api.groq_client import GroqClient
+from Instructor.task_classifier import TaskClassifier
+from multimodal.image_processor import ImageProcessor
+from multimodal.text_processor import TextProcessor
+from multimodal.video_processor import VideoProcessor
+from database.neo4j_client import Neo4jClient
+from api.groq_client import GroqClient
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,7 @@ class Instructor:
         self.config = config
         self.task_classifier = TaskClassifier()
         self.multimodal_processor = MultimodalProcessor()
+
         self.neo4j_client = Neo4jClient(
             uri=config["neo4j"]["uri"],
             username=config["neo4j"]["username"],
