@@ -437,11 +437,20 @@ const TunerChatbot = () => {
       }
 
       // Make API call to backend
-      const response = await fetch("YOUR_BACKEND_API_URL", {
-        method: "POST",
-        body: formData,
-        // No Content-Type header needed as it's automatically set with boundary for FormData
-      });
+      // const response = await fetch("YOUR_BACKEND_API_URL", {
+      //   method: "POST",
+      //   body: formData,
+      //   // No Content-Type header needed as it's automatically set with boundary for FormData
+      // });
+
+      console.log("newUserMessage", newUserMessage);
+
+      const response = await fetch(
+        `http://192.168.38.129:8000/groq?prompt=${encodeURIComponent(newUserMessage.text)}`,
+        {
+          method: "GET",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
@@ -1105,7 +1114,7 @@ const TunerChatbot = () => {
         </button>
       </div>
 
-      {showVideoPopup && (
+      {/* {showVideoPopup && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div
             className={`${colors.secondary} rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden`}
@@ -1126,7 +1135,6 @@ const TunerChatbot = () => {
             </div>
 
             <div className="p-4 relative">
-              {/* Video preview container */}
               <div className="bg-black rounded-lg overflow-hidden aspect-video relative">
                 <video
                   ref={videoRef}
@@ -1135,7 +1143,6 @@ const TunerChatbot = () => {
                   muted
                 />
 
-                {/* Overlay instructions */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="bg-black/50 px-4 py-2 rounded-lg text-white text-center max-w-xs">
                     <p className="font-medium">
@@ -1144,7 +1151,6 @@ const TunerChatbot = () => {
                   </div>
                 </div>
 
-                {/* Optional: Target indicator */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="w-32 h-32 border-2 border-dashed border-white/60 rounded-full"></div>
                 </div>
@@ -1170,7 +1176,74 @@ const TunerChatbot = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
+
+{showVideoPopup && (
+  <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+    <div
+      className={`${colors.secondary} rounded-xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden`}
+    >
+      <div
+        className={`${colors.primary} p-4 flex justify-between items-center`}
+      >
+        <h3 className="text-white font-medium">Record Video</h3>
+        <button
+          onClick={() => {
+            stopVideoRecording();
+            setShowVideoPopup(false);
+          }}
+          className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      <div className="p-6 relative">
+        {/* Video preview container */}
+        <div className="bg-black rounded-lg overflow-hidden aspect-video relative">
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            autoPlay
+            muted
+          />
+
+          {/* Overlay instructions */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-black/50 px-5 py-3 rounded-lg text-white text-center max-w-sm">
+              <p className="font-medium text-lg">
+                Place your hand at the center of the frame
+              </p>
+            </div>
+          </div>
+
+          {/* Optional: Target indicator */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-40 h-40 border-2 border-dashed border-white/60 rounded-full"></div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={stopVideoRecording}
+            className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
+          >
+            <span>Stop Recording</span>
+          </button>
+        </div>
+
+        <p
+          className={`text-sm mt-4 ${
+            theme === "dark" ? "text-gray-300" : "text-gray-600"
+          }`}
+        >
+          Recording will be sent after you stop. Make sure your hand is
+          clearly visible.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
