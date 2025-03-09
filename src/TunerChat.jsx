@@ -12,7 +12,7 @@ import {
   Sliders,
   Send,
   Download,
-  Plus
+  Plus,
 } from "lucide-react";
 import marketplaceItems from "../src/assets/marketplacedata";
 
@@ -31,6 +31,7 @@ const TunerChatbot = () => {
   const [mediaType, setMediaType] = useState(null);
   const [theme, setTheme] = useState("dark"); // 'blue', 'purple', 'green', 'dark'
   const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [showVideoPopup, setShowVideoPopup] = useState(false);
 
   const fileInputRef = useRef(null);
   const messageEndRef = useRef(null);
@@ -119,25 +120,74 @@ const TunerChatbot = () => {
     }, 1500);
   };
 
-  const handleRecordNew = () => {
-    // Hide marketplace options
-    setMarketplaceOptions(null);
+  const handleRecordNew = async () => {
+    try {
+      // Hide marketplace options
+      setMarketplaceOptions(null);
+  
+      // Get the current input text from the text area
+      const prompt = inputText.trim();
+  
+      // Add user message to chat to show what's being sent
+      const userMessage = {
+        id: Date.now(),
+        type: "user",
+        text: prompt || "Sending request to Groq...",
+      };
+  
+      setMessages((prev) => [...prev, userMessage]);
+      setIsLoading(true);
+  
+      console.log("prompt", prompt);
 
-    // Show media buttons for recording
-    setShowMediaButtons(true);
-
-    // Add a bot message guiding user to record
-    const botResponse = {
-      id: Date.now(),
-      type: "bot",
-      text: "You can record new instruction data using audio, video, or image. Please select an option from the media menu.",
-    };
-
-    setMessages((prev) => [...prev, botResponse]);
+      const finalPrompt = prompt || "Autonomous Floor Cleaner";
+  
+      // Make the API call to Groq with the current input text
+      const response = await fetch(
+        `http://192.168.38.129:8000/groq?prompt=${encodeURIComponent(finalPrompt)}`,
+        {
+          method: "GET",
+        }
+      );
+  
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+  
+      // Parse the response
+      const groqData = await response.json();
+      console.log("Groq response:", groqData);
+  
+      // Add bot response with Groq's reply
+      const botResponse = {
+        id: Date.now() + 1,
+        type: "bot",
+        text: groqData || "Received a response from Groq.",
+      };
+  
+      setMessages((prev) => [...prev, botResponse]);
+  
+      // Clear the input text
+      setInputText("");
+    } catch (error) {
+      console.error("Error in handleRecordNew:", error);
+  
+      // Add error message to chat
+      const errorResponse = {
+        id: Date.now() + 1,
+        type: "bot",
+        text: "Sorry, there was an error communicating with Groq. Please try again.",
+      };
+  
+      setMessages((prev) => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
+  
   const startVideoRecording = async () => {
     try {
+      setShowVideoPopup(true); // Show the popup
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
       videoRef.current.style.display = "block";
@@ -151,6 +201,22 @@ const TunerChatbot = () => {
         }
       };
 
+      const response = await fetch(
+        "http://192.168.38.129:8000/start_recording",
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      // Parse the response
+      const videoReqData = await response.json();
+
+      console.log("videoReqData", videoReqData);
+
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunks, { type: "video/webm" });
         const videoUrl = URL.createObjectURL(blob);
@@ -160,20 +226,41 @@ const TunerChatbot = () => {
         const tracks = videoRef.current.srcObject.getTracks();
         tracks.forEach((track) => track.stop());
         videoRef.current.style.display = "none";
+        setShowVideoPopup(false); // Hide the popup when done
       };
 
       mediaRecorderRef.current.start();
     } catch (error) {
       console.error("Error accessing camera:", error);
+      setShowVideoPopup(false); // Hide popup if there's an error
     }
   };
 
-  const stopVideoRecording = () => {
+  // Update the stopVideoRecording function
+  const stopVideoRecording = async () => {
     if (
       mediaRecorderRef.current &&
       mediaRecorderRef.current.state !== "inactive"
     ) {
       mediaRecorderRef.current.stop();
+
+      const response = await fetch(
+        "http://192.168.38.129:8000/stop_recording",
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      // Parse the response
+      const videoReqData = await response.json();
+
+      console.log("videoReqData stop", videoReqData);
+
+      setShowVideoPopup(false); // Hide the popup
     }
   };
 
@@ -540,6 +627,29 @@ const TunerChatbot = () => {
 
               {message.text && (
                 <p className="leading-relaxed">{message.text}</p>
+              )}
+
+              {message.showRecordButton && (
+                <div className="mt-4">
+                  <button
+                    onClick={startVideoRecording}
+                    className={`flex items-center px-4 py-2 rounded-lg ${
+                      theme === "dark"
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : "bg-blue-500 hover:bg-blue-600"
+                    } text-white transition-colors`}
+                  >
+                    <Video size={16} className="mr-2" />
+                    Record your video
+                  </button>
+                  <p
+                    className={`text-xs mt-2 ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Record a video to demonstrate the action
+                  </p>
+                </div>
               )}
 
               <div className="flex justify-between items-center mt-2">
@@ -994,6 +1104,73 @@ const TunerChatbot = () => {
           <Bot size={24} />
         </button>
       </div>
+
+      {showVideoPopup && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div
+            className={`${colors.secondary} rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden`}
+          >
+            <div
+              className={`${colors.primary} p-4 flex justify-between items-center`}
+            >
+              <h3 className="text-white font-medium">Record Video</h3>
+              <button
+                onClick={() => {
+                  stopVideoRecording();
+                  setShowVideoPopup(false);
+                }}
+                className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-4 relative">
+              {/* Video preview container */}
+              <div className="bg-black rounded-lg overflow-hidden aspect-video relative">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                />
+
+                {/* Overlay instructions */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="bg-black/50 px-4 py-2 rounded-lg text-white text-center max-w-xs">
+                    <p className="font-medium">
+                      Place your hand at the center of the frame
+                    </p>
+                  </div>
+                </div>
+
+                {/* Optional: Target indicator */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-32 h-32 border-2 border-dashed border-white/60 rounded-full"></div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={stopVideoRecording}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full flex items-center space-x-2 transition-colors"
+                >
+                  <span>Stop Recording</span>
+                </button>
+              </div>
+
+              <p
+                className={`text-xs mt-3 ${
+                  theme === "dark" ? "text-gray-300" : "text-gray-600"
+                }`}
+              >
+                Recording will be sent after you stop. Make sure your hand is
+                clearly visible.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

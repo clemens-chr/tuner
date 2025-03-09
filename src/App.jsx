@@ -8,7 +8,8 @@ import TunerMarketplace from './components/Markeplace'
 function App() {
   return (
     <>
-      <div className="rounded-lg bg-gray-100 p-4">
+    <div>
+      {/* <div className="rounded-lg bg-gray-100 p-4"> */}
         {/* <HandTracker /> */}
       {/* <div className="webcam-container">
         <Webcam />
