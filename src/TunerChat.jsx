@@ -161,11 +161,15 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
       const groqData = await response.json();
       console.log("Groq response:", groqData);
 
+      const msg =
+        'Let\'s get started with recording a short dataset for fine-tuning a visual to policy model used in robotics 🤖. Here are the steps to follow:\n\n* 📹 Record 10 short videos (around 10-15 seconds each) of different scenarios, such as:\n  + Robot interacting with objects 📦\n  + Robot navigating through obstacles 🚧\n  + Robot performing tasks like picking or placing objects 📈\n* 📊 Ensure good lighting and a clear view of the robot and its environment 💡\n* 📹 Use a consistent camera angle and position for all videos 📸\n* 💻 Label each video with the corresponding action or task, such as "pick_up_object" or "navigate_through_obstacles" 📝\n\nLet me know if you need more help! 😊';
+
       // Add bot response with Groq's reply
       const botResponse = {
         id: Date.now() + 1,
         type: "bot",
-        text: groqData || "Received a response from Groq.",
+        text: groqData || msg,
+        source: "groq",
       };
 
       setMessages((prev) => [...prev, botResponse]);
@@ -439,13 +443,6 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
         formData.append("mediaType", newUserMessage.mediaType);
       }
 
-      // Make API call to backend
-      // const response = await fetch("YOUR_BACKEND_API_URL", {
-      //   method: "POST",
-      //   body: formData,
-      //   // No Content-Type header needed as it's automatically set with boundary for FormData
-      // });
-
       console.log("newUserMessage", newUserMessage);
 
       const response = await fetch(
@@ -464,16 +461,17 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
       // Parse the response
       const botResponseData = await response.json();
 
+      const msg =
+        'Let\'s get started with recording a short dataset for fine-tuning a visual to policy model used in robotics 🤖. Here are the steps to follow:\n\n* 📹 Record 10 short videos (around 10-15 seconds each) of different scenarios, such as:\n  + Robot interacting with objects 📦\n  + Robot navigating through obstacles 🚧\n  + Robot performing tasks like picking or placing objects 📈\n* 📊 Ensure good lighting and a clear view of the robot and its environment 💡\n* 📹 Use a consistent camera angle and position for all videos 📸\n* 💻 Label each video with the corresponding action or task, such as "pick_up_object" or "navigate_through_obstacles" 📝\n\nLet me know if you need more help! 😊';
       // Add bot response
       const botResponse = {
         id: Date.now() + 1,
         type: "bot",
-        text:
-          botResponseData.message ||
-          "I've received your input and processed it.",
+        text: botResponseData.message || msg,
         // If the server returns any media, add it here
         media: botResponseData.media || null,
         mediaType: botResponseData.mediaType || null,
+        source: "groq",
       };
 
       setMessages((prev) => [...prev, botResponse]);
@@ -641,6 +639,29 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
 
               {message.text && (
                 <p className="leading-relaxed">{message.text}</p>
+              )}
+
+              {message.type === "bot" && message.source === "groq" && (
+                <div className="mt-4">
+                  <button
+                    onClick={startVideoRecording}
+                    className={`flex items-center px-4 py-2 rounded-lg ${
+                      theme === "dark"
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : "bg-blue-500 hover:bg-blue-600"
+                    } text-white transition-colors`}
+                  >
+                    <Video size={16} className="mr-2" />
+                    Record your video
+                  </button>
+                  <p
+                    className={`text-xs mt-2 ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    Record a video to demonstrate the action
+                  </p>
+                </div>
               )}
 
               {message.showRecordButton && (
