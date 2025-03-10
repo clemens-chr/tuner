@@ -33,6 +33,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
   const [theme, setTheme] = useState("dark"); // 'blue', 'purple', 'green', 'dark'
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   const fileInputRef = useRef(null);
   const messageEndRef = useRef(null);
@@ -192,6 +193,60 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
     }
   };
 
+  // const startVideoRecording = async () => {
+  //   try {
+  //     setShowVideoPopup(true); // Show the popup
+  //     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  //     videoRef.current.srcObject = stream;
+  //     videoRef.current.style.display = "block";
+
+  //     mediaRecorderRef.current = new MediaRecorder(stream);
+  //     const chunks = [];
+
+  //     mediaRecorderRef.current.ondataavailable = (e) => {
+  //       if (e.data.size > 0) {
+  //         chunks.push(e.data);
+  //       }
+  //     };
+
+  //     const response = await fetch(
+  //       "http://192.168.38.129:8000/start_recording",
+  //       {
+  //         method: "GET",
+  //       }
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error(`Server responded with ${response.status}`);
+  //     }
+
+  //     // Parse the response
+  //     const videoReqData = await response.json();
+
+  //     console.log("videoReqData", videoReqData);
+
+  //     mediaRecorderRef.current.onstop = () => {
+  //       const blob = new Blob(chunks, { type: "video/webm" });
+  //       const videoUrl = URL.createObjectURL(blob);
+  //       setMediaPreview(videoUrl);
+  //       setMediaType("video");
+
+  //       const tracks = videoRef.current.srcObject.getTracks();
+  //       tracks.forEach((track) => track.stop());
+  //       videoRef.current.style.display = "none";
+  //       setShowVideoPopup(false); // Hide the popup when done
+  //     };
+
+  //     mediaRecorderRef.current.start();
+  //   } catch (error) {
+  //     console.error("Error accessing camera:", error);
+  //     setShowVideoPopup(false); // Hide popup if there's an error
+  //   }
+  // };
+
+  // Update the stopVideoRecording function
+  
+  
   const startVideoRecording = async () => {
     try {
       setShowVideoPopup(true); // Show the popup
@@ -199,6 +254,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
       videoRef.current.srcObject = stream;
       videoRef.current.style.display = "block";
 
+      // Initialize media recorder but don't start recording yet
       mediaRecorderRef.current = new MediaRecorder(stream);
       const chunks = [];
 
@@ -207,22 +263,6 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
           chunks.push(e.data);
         }
       };
-
-      const response = await fetch(
-        "http://192.168.38.129:8000/start_recording",
-        {
-          method: "GET",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
-      // Parse the response
-      const videoReqData = await response.json();
-
-      console.log("videoReqData", videoReqData);
 
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunks, { type: "video/webm" });
@@ -234,16 +274,46 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
         tracks.forEach((track) => track.stop());
         videoRef.current.style.display = "none";
         setShowVideoPopup(false); // Hide the popup when done
+        setIsRecording(false);
       };
-
-      mediaRecorderRef.current.start();
+      
+      // Don't start recording automatically
+      // Just prepare the video stream for preview
     } catch (error) {
       console.error("Error accessing camera:", error);
       setShowVideoPopup(false); // Hide popup if there's an error
     }
   };
 
-  // Update the stopVideoRecording function
+  const beginRecording = async () => {
+    if (mediaRecorderRef.current) {
+      try {
+        setIsRecording(true);
+        
+        const response = await fetch(
+          "http://192.168.38.129:8000/start_recording",
+          {
+            method: "GET",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
+
+        // Parse the response
+        const videoReqData = await response.json();
+        console.log("videoReqData", videoReqData);
+        
+        // Start recording
+        mediaRecorderRef.current.start();
+      } catch (error) {
+        console.error("Error starting recording:", error);
+      }
+    }
+  };
+
+  
   const stopVideoRecording = async () => {
     if (
       mediaRecorderRef.current &&
@@ -1213,7 +1283,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
         </div>
       )} */}
 
-      {showVideoPopup && (
+{showVideoPopup && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div
             className={`${colors.secondary} rounded-xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden`}
@@ -1224,8 +1294,16 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
               <h3 className="text-white font-medium">Record Video</h3>
               <button
                 onClick={() => {
-                  stopVideoRecording();
-                  setShowVideoPopup(false);
+                  if (isRecording) {
+                    stopVideoRecording();
+                  } else {
+                    // Just close the popup if not recording
+                    const tracks = videoRef.current.srcObject?.getTracks();
+                    if (tracks) {
+                      tracks.forEach(track => track.stop());
+                    }
+                    setShowVideoPopup(false);
+                  }
                 }}
                 className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
               >
@@ -1247,24 +1325,47 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="bg-black/50 px-5 py-3 rounded-lg text-white text-center max-w-sm">
                     <p className="font-medium text-lg">
-                      Place your hand at the center of the frame
+                      {isRecording 
+                        ? "Recording in progress..." 
+                        : "Place your hand at the center of the frame"}
                     </p>
                   </div>
                 </div>
 
-                {/* Optional: Target indicator */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-40 h-40 border-2 border-dashed border-white/60 rounded-full"></div>
-                </div>
+                {/* Optional: Target indicator - only show when recording */}
+                {isRecording && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-40 h-40 border-2 border-dashed border-white/60 rounded-full"></div>
+                  </div>
+                )}
+                
+                {/* Recording indicator */}
+                {isRecording && (
+                  <div className="absolute top-4 right-4 flex items-center space-x-2 bg-black/70 px-3 py-1 rounded-full">
+                    <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+                    <span className="text-white text-sm">Recording</span>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-6 flex justify-center">
-                <button
-                  onClick={stopVideoRecording}
-                  className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
-                >
-                  <span>Stop Recording</span>
-                </button>
+              <div className="mt-6 flex justify-center space-x-4">
+                {!isRecording ? (
+                  <button
+                    onClick={beginRecording}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
+                  >
+                    <Video size={20} className="mr-2" />
+                    <span>Start Recording</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopVideoRecording}
+                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
+                  >
+                    <X size={20} className="mr-2" />
+                    <span>Stop Recording</span>
+                  </button>
+                )}
               </div>
 
               <p
@@ -1272,8 +1373,9 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
                   theme === "dark" ? "text-gray-300" : "text-gray-600"
                 }`}
               >
-                Recording will be sent after you stop. Make sure your hand is
-                clearly visible.
+                {isRecording 
+                  ? "Recording will be sent after you stop. Make sure your subject is clearly visible."
+                  : "Preview your camera before recording. Position your robot or subject in frame."}
               </p>
             </div>
           </div>
