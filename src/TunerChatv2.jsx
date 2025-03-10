@@ -30,7 +30,11 @@ const HandTracker = () => {
 
   return (
     <img
-      src={imageLoaded ? "http://127.0.0.1:8000/video_feed" : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080' viewBox='0 0 1920 1080'%3E%3Crect width='1920' height='1080' fill='blue'/%3E%3C/svg%3E"}
+      src={
+        imageLoaded
+          ? "http://127.0.0.1:8000/video_feed"
+          : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080' viewBox='0 0 1920 1080'%3E%3Crect width='1920' height='1080' fill='blue'/%3E%3C/svg%3E"
+      }
       alt="Video Stream"
       style={{ width: "100%", height: "auto" }}
     />
@@ -267,8 +271,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
   // };
 
   // Update the stopVideoRecording function
-  
-  
+
   // const startVideoRecording = async () => {
   //   try {
   //     setShowVideoPopup(true); // Show the popup
@@ -298,7 +301,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
   //       setShowVideoPopup(false); // Hide the popup when done
   //       setIsRecording(false);
   //     };
-      
+
   //     // Don't start recording automatically
   //     // Just prepare the video stream for preview
   //   } catch (error) {
@@ -310,30 +313,32 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
   const startVideoRecording = async () => {
     try {
       setShowVideoPopup(true); // Show the popup
-  
+
       // Only initialize webcam if NOT using custom stream
       if (!useCustomStream) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
         videoRef.current.srcObject = stream;
         videoRef.current.style.display = "block";
         streamRef.current = stream;
-        
+
         // Initialize media recorder for webcam
         const chunks = [];
         mediaRecorderRef.current = new MediaRecorder(stream);
-        
+
         mediaRecorderRef.current.ondataavailable = (e) => {
           if (e.data.size > 0) {
             chunks.push(e.data);
           }
         };
-  
+
         mediaRecorderRef.current.onstop = () => {
           const blob = new Blob(chunks, { type: "video/webm" });
           const videoUrl = URL.createObjectURL(blob);
           setMediaPreview(videoUrl);
           setMediaType("video");
-  
+
           const tracks = stream.getTracks();
           tracks.forEach((track) => track.stop());
           videoRef.current.style.display = "none";
@@ -341,7 +346,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
           setIsRecording(false);
         };
       }
-      
+
       // Rest of setup without initializing webcam
       setIsRecording(false);
     } catch (error) {
@@ -349,12 +354,12 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
       setShowVideoPopup(false);
     }
   };
-  
+
   // const beginRecording = async () => {
   //   if (mediaRecorderRef.current) {
   //     try {
   //       setIsRecording(true);
-        
+
   //       const response = await fetch(
   //         "http://192.168.38.129:8000/start_recording",
   //         {
@@ -369,7 +374,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
   //       // Parse the response
   //       const videoReqData = await response.json();
   //       console.log("videoReqData", videoReqData);
-        
+
   //       // Start recording
   //       mediaRecorderRef.current.start();
   //     } catch (error) {
@@ -378,7 +383,6 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
   //   }
   // };
 
-  
   // const stopVideoRecording = async () => {
   //   if (
   //     mediaRecorderRef.current &&
@@ -409,7 +413,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
   const beginRecording = async () => {
     try {
       setIsRecording(true);
-      
+
       // Notify the server to start recording in both cases
       const response = await fetch(
         "http://192.168.38.129:8000/start_recording",
@@ -417,15 +421,15 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
           method: "GET",
         }
       );
-  
+
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
       }
-  
+
       // Parse the response
       const videoReqData = await response.json();
       console.log("videoReqData", videoReqData);
-      
+
       // Only start mediaRecorder if using webcam
       if (!useCustomStream && mediaRecorderRef.current) {
         mediaRecorderRef.current.start();
@@ -435,18 +439,87 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
       setIsRecording(false);
     }
   };
-  
-  
+
+  // const stopVideoRecording = async () => {
+  //   console.log("calling stopped");
+  //   setIsRecording(false); // Immediately update UI to show recording stopped
+
+  //   try {
+  //     // Stop webcam recording if applicable
+  //     if (!useCustomStream && mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+  //       mediaRecorderRef.current.stop();
+  //     }
+
+  //     // Tell server to stop recording
+  //     console.log("Sending stop recording request to server");
+  //     const response = await fetch(
+  //       "http://192.168.38.129:8000/stop_recording",
+  //       {
+  //         method: "GET",
+  //       }
+  //     );
+
+  //     console.log("stop response status:", response.status);
+
+  //     // Even if there's an error from the server, we should still try to get the recorded video
+  //     // and proceed with closing the popup
+
+  //     try {
+  //       const videoReqData = await response.json();
+  //       console.log("videoReqData stop", videoReqData);
+  //     } catch (e) {
+  //       console.error("Error parsing server response:", e);
+  //       // Continue anyway - we still want to try getting the video
+  //     }
+
+  //     // If using custom stream, get the recorded video from server
+  //     if (useCustomStream) {
+  //       try {
+  //         // Wait a bit longer to make sure the server has finished processing
+  //         console.log("Waiting for video processing...");
+  //         await new Promise(resolve => setTimeout(resolve, 1500));
+
+  //         // Request the recorded video from server
+  //         console.log("Requesting recorded video...");
+  //         const videoResponse = await fetch('http://192.168.38.129:8000/get_recorded_video');
+
+  //         console.log("Video response status:", videoResponse.status);
+
+  //         if (videoResponse.ok) {
+  //           const blob = await videoResponse.blob();
+  //           const videoUrl = URL.createObjectURL(blob);
+  //           console.log("Video URL created:", videoUrl ? "success" : "failed");
+  //           setMediaPreview(videoUrl);
+  //           setMediaType("video");
+  //         } else {
+  //           console.error("Failed to get recorded video from server, status:", videoResponse.status);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error fetching recorded video:", error);
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Error in stop recording process:", error);
+  //   } finally {
+  //     // Always close the popup and reset recording state
+  //     setShowVideoPopup(false);
+  //   }
+  // };
+
   const stopVideoRecording = async () => {
     console.log("calling stopped");
     setIsRecording(false); // Immediately update UI to show recording stopped
-    
+
     try {
       // Stop webcam recording if applicable
-      if (!useCustomStream && mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      if (
+        !useCustomStream &&
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
         mediaRecorderRef.current.stop();
       }
-  
+
       // Tell server to stop recording
       console.log("Sending stop recording request to server");
       const response = await fetch(
@@ -455,53 +528,98 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
           method: "GET",
         }
       );
-  
+
       console.log("stop response status:", response.status);
-  
-      // Even if there's an error from the server, we should still try to get the recorded video
-      // and proceed with closing the popup
-      
+
       try {
         const videoReqData = await response.json();
         console.log("videoReqData stop", videoReqData);
       } catch (e) {
         console.error("Error parsing server response:", e);
-        // Continue anyway - we still want to try getting the video
       }
-  
-      // If using custom stream, get the recorded video from server
-      if (useCustomStream) {
-        try {
-          // Wait a bit longer to make sure the server has finished processing
-          console.log("Waiting for video processing...");
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          
-          // Request the recorded video from server
-          console.log("Requesting recorded video...");
-          const videoResponse = await fetch('http://192.168.38.129:8000/get_recorded_video');
-          
-          console.log("Video response status:", videoResponse.status);
-          
-          if (videoResponse.ok) {
-            const blob = await videoResponse.blob();
-            const videoUrl = URL.createObjectURL(blob);
-            console.log("Video URL created:", videoUrl ? "success" : "failed");
-            setMediaPreview(videoUrl);
-            setMediaType("video");
-          } else {
-            console.error("Failed to get recorded video from server, status:", videoResponse.status);
-          }
-        } catch (error) {
-          console.error("Error fetching recorded video:", error);
-        }
-      }
+
+      // Add a success message to the chat with deploy button
+      const recordingSuccessMessage = {
+        id: Date.now(),
+        type: "bot",
+        text: "Your demonstration video was successfully recorded! You can now deploy it to the robot.",
+        showDeployButton: true,
+      };
+
+      setMessages((prev) => [...prev, recordingSuccessMessage]);
     } catch (error) {
       console.error("Error in stop recording process:", error);
+
+      // Add an error message
+      const errorMessage = {
+        id: Date.now(),
+        type: "bot",
+        text: "There was an error recording your demonstration. Please try again.",
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       // Always close the popup and reset recording state
       setShowVideoPopup(false);
+      setMediaPreview(null);
+      setMediaType(null);
     }
   };
+
+  const deployLatest = async () => {
+    try {
+      setIsLoading(true);
+
+      // Add a message to show deployment is in progress
+      const deploymentMessage = {
+        id: Date.now(),
+        type: "user",
+        text: "Deploying the demonstration to the robot...",
+      };
+
+      setMessages((prev) => [...prev, deploymentMessage]);
+
+      const deployResponse = await fetch(
+        "http://192.168.38.129:8000/deploy",
+        {
+          method: "GET",
+        }
+      );
+
+      if (!deployResponse.ok) {
+        throw new Error(
+          `Deployment failed with status: ${deployResponse.status}`
+        );
+      }
+
+      const deployResult = await deployResponse.json();
+
+      // Add a success message from the bot
+      const successMessage = {
+        id: Date.now() + 1,
+        type: "bot",
+        text:
+          deployResult.message ||
+          "Demonstration successfully deployed to the robot! The robot will now attempt to replicate the demonstrated actions.",
+      };
+
+      setMessages((prev) => [...prev, successMessage]);
+    } catch (error) {
+      console.error("Error deploying video:", error);
+
+      // Add an error message
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: "bot",
+        text: "There was an error deploying your demonstration. Please try again.",
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const startAudioRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -840,6 +958,34 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
                 </div>
               )}
 
+              {/* {message.media && (
+                <div className="mb-3">
+                  {message.mediaType === "image" && (
+                    <div className="rounded-lg overflow-hidden">
+                      <img
+                        src={message.media}
+                        alt="User shared"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  )}
+                  {message.mediaType === "video" && (
+                    <div className="rounded-lg overflow-hidden">
+                      <video
+                        src={message.media}
+                        controls
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  )}
+                  {message.mediaType === "audio" && (
+                    <div className="rounded-lg overflow-hidden">
+                      <audio src={message.media} controls className="w-full" />
+                    </div>
+                  )}
+                </div>
+              )} */}
+
               {message.media && (
                 <div className="mb-3">
                   {message.mediaType === "image" && (
@@ -858,6 +1004,31 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
                         controls
                         className="w-full h-auto"
                       />
+                      {message.showDeployButton && (
+                        <div className="mt-4">
+                          <button
+                            onClick={deployLatest}
+                            className={`flex items-center px-4 py-2 rounded-lg ${
+                              theme === "dark"
+                                ? "bg-green-600 hover:bg-green-700"
+                                : "bg-green-500 hover:bg-green-600"
+                            } text-white transition-colors`}
+                          >
+                            <Send size={16} className="mr-2" />
+                            Deploy to Robot
+                          </button>
+                          <p
+                            className={`text-xs mt-2 ${
+                              theme === "dark"
+                                ? "text-gray-400"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            This will send the demonstration to the robot for
+                            imitation learning
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                   {message.mediaType === "audio" && (
@@ -1444,7 +1615,7 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
         </div>
       )} */}
 
-{/* {showVideoPopup && (
+      {/* {showVideoPopup && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
           <div
             className={`${colors.secondary} rounded-xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden`}
@@ -1538,16 +1709,16 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
         </div>
       )} */}
 
-{showVideoPopup && (
-  <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-    <div
-      className={`${colors.secondary} rounded-xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden`}
-    >
-      <div
-        className={`${colors.primary} p-4 flex justify-between items-center`}
-      >
-        <h3 className="text-white font-medium">Record Video</h3>
-        {/* <button
+      {showVideoPopup && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div
+            className={`${colors.secondary} rounded-xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden`}
+          >
+            <div
+              className={`${colors.primary} p-4 flex justify-between items-center`}
+            >
+              <h3 className="text-white font-medium">Record Video</h3>
+              {/* <button
           onClick={() => {
             if (isRecording) {
               stopVideoRecording();
@@ -1565,78 +1736,78 @@ const TunerChatbot = ({ onMarketplaceClick }) => {
           <X size={20} />
         </button> */}
 
-<button
-  onClick={() => {
-    if (isRecording) {
-      stopVideoRecording();
-    } else {
-      // Just close the popup if not recording
-      if (!useCustomStream && videoRef.current?.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
-      }
-      setShowVideoPopup(false);
-    }
-  }}
-  className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
->
-  <X size={20} />
-</button>
-      </div>
-
-      <div className="p-6 relative">
-        {/* Video preview container */}
-        <div className="bg-black rounded-lg overflow-hidden aspect-video relative">
-          {useCustomStream ? (
-            <HandTracker />
-          ) : (
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover"
-              autoPlay
-              muted
-            />
-          )}
-
-          {/* Optional: Target indicator - only show when recording */}
-          {isRecording && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-40 h-40 border-2 border-dashed border-white/60 rounded-full"></div>
+              <button
+                onClick={() => {
+                  if (isRecording) {
+                    stopVideoRecording();
+                  } else {
+                    // Just close the popup if not recording
+                    if (!useCustomStream && videoRef.current?.srcObject) {
+                      const tracks = videoRef.current.srcObject.getTracks();
+                      tracks.forEach((track) => track.stop());
+                    }
+                    setShowVideoPopup(false);
+                  }
+                }}
+                className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
-          )}
-          
-          {/* Recording indicator */}
-          {isRecording && (
-            <div className="absolute top-4 right-4 flex items-center space-x-2 bg-black/70 px-3 py-1 rounded-full">
-              <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
-              <span className="text-white text-sm">Recording</span>
-            </div>
-          )}
-        </div>
 
-        <div className="mt-6 flex justify-center space-x-4">
-          {!isRecording ? (
-            <button
-              onClick={beginRecording}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
-            >
-              <Video size={20} className="mr-2" />
-              <span>Start Recording</span>
-            </button>
-          ) : (
-            <button
-              onClick={stopVideoRecording}
-              className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
-            >
-              <X size={20} className="mr-2" />
-              <span>Stop Recording</span>
-            </button>
-          )}
+            <div className="p-6 relative">
+              {/* Video preview container */}
+              <div className="bg-black rounded-lg overflow-hidden aspect-video relative">
+                {useCustomStream ? (
+                  <HandTracker />
+                ) : (
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    muted
+                  />
+                )}
+
+                {/* Optional: Target indicator - only show when recording */}
+                {isRecording && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-40 h-40 border-2 border-dashed border-white/60 rounded-full"></div>
+                  </div>
+                )}
+
+                {/* Recording indicator */}
+                {isRecording && (
+                  <div className="absolute top-4 right-4 flex items-center space-x-2 bg-black/70 px-3 py-1 rounded-full">
+                    <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+                    <span className="text-white text-sm">Recording</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-center space-x-4">
+                {!isRecording ? (
+                  <button
+                    onClick={beginRecording}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
+                  >
+                    <Video size={20} className="mr-2" />
+                    <span>Start Recording</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopVideoRecording}
+                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full flex items-center space-x-2 transition-colors text-lg"
+                  >
+                    <X size={20} className="mr-2" />
+                    <span>Stop Recording</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 };
